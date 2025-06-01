@@ -11,6 +11,9 @@
     <div class="container mx-auto p-6 max-w-5xl flex flex-col md:flex-row">
         <!-- Step Menu -->
         <div id="step-menu" class="hidden fixed md:static top-0 left-0 w-64 bg-gray-50 p-4 rounded-xl shadow-lg mr-0 md:mr-6 mb-4 md:mb-0 transform md:transform-none transition-transform duration-300 z-50">
+            <button id="menu-close" class="md:hidden absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 transition-transform transform hover:scale-105">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
             <h3 class="text-lg font-semibold mb-4 text-gray-800">Progress</h3>
             <ul id="step-list" class="space-y-2"></ul>
         </div>
@@ -514,6 +517,8 @@ Congratulations! You’ve completed the data breach response process. Review you
         });
 
         document.getElementById('menu-toggle').addEventListener('click', toggleMenu);
+
+        document.getElementById('menu-close').addEventListener('click', toggleMenu);
 
         // Render the overview page
         renderStep();
