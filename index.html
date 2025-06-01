@@ -8,9 +8,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-gradient-to-r from-blue-100 to-gray-100 font-sans min-h-screen flex items-center justify-center">
-    <div class="container mx-auto p-6 max-w-3xl">
-        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Data Breach Response Wizard</h1>
-        <div id="wizard" class="bg-white p-8 rounded-xl shadow-lg transition-all duration-300">
+    <div class="container mx-auto p-6 max-w-5xl flex flex-col md:flex-row">
+        <!-- Step Menu -->
+        <div id="step-menu" class="hidden fixed md:static top-0 left-0 w-64 bg-gray-50 p-4 rounded-xl shadow-lg mr-0 md:mr-6 mb-4 md:mb-0 transform md:transform-none transition-transform duration-300 z-50">
+            <h3 class="text-lg font-semibold mb-4 text-gray-800">Progress</h3>
+            <ul id="step-list" class="space-y-2"></ul>
+        </div>
+        <!-- Mobile Menu Toggle -->
+        <div id="menu-toggle-container" class="hidden md:hidden mb-4">
+            <button id="menu-toggle" class="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+        </div>
+        <!-- Main Content -->
+        <div id="wizard" class="bg-white p-8 rounded-xl shadow-lg flex-1">
             <div id="step-content" class="mb-6"></div>
             <div id="navigation" class="flex justify-between">
                 <button id="prev-btn" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>Previous</button>
@@ -20,6 +31,7 @@
                 <button id="download-pdf-btn" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-105">Download PDF</button>
                 <button id="start-again-btn" class="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-transform transform hover:scale-105">Start Again</button>
             </div>
+            <footer id="footer" class="mt-6 text-center text-gray-500 text-sm">© 2025 Xservus Limited. All rights reserved.</footer>
         </div>
     </div>
 
@@ -27,6 +39,7 @@
         const { jsPDF } = window.jspdf;
         let isCharity = null; // Tracks whether user selected charity path
         let currentStep = -1; // Start with overview page
+        let menuOpen = false; // Tracks mobile menu state
 
         const overview = {
             title: "Welcome to the Data Breach Response Wizard",
@@ -338,16 +351,63 @@ Congratulations! You’ve completed the data breach response process. Review you
             return steps.filter(step => !step.charityOnly || (step.charityOnly && isCharity));
         }
 
+        function renderStepMenu() {
+            const stepList = document.getElementById('step-list');
+            const stepMenu = document.getElementById('step-menu');
+            const menuToggleContainer = document.getElementById('menu-toggle-container');
+            stepList.innerHTML = '';
+
+            if (currentStep <= 0 || isCharity === null) {
+                stepMenu.classList.add('hidden', '-translate-x-full');
+                menuToggleContainer.classList.add('hidden');
+                menuOpen = false;
+                return;
+            }
+
+            stepMenu.classList.remove('hidden');
+            menuToggleContainer.classList.remove('hidden');
+            const activeSteps = getActiveSteps();
+            activeSteps.forEach((step, index) => {
+                const stepNumber = index + 1;
+                const isCurrent = currentStep - 1 === index;
+                const isCompleted = currentStep - 1 > index;
+                const title = typeof step.title === 'function' ? step.title(isCharity) : step.title;
+                const li = document.createElement('li');
+                li.className = `cursor-pointer p-2 rounded-lg text-sm ${isCurrent ? 'bg-blue-100 font-bold text-gray-800' : isCompleted ? 'text-gray-800 before:content-["✓"] before:text-green-500 before:mr-2' : 'text-gray-500'}`;
+                li.textContent = title;
+                li.addEventListener('click', () => {
+                    currentStep = index + 1;
+                    renderStep();
+                    if (menuOpen) toggleMenu(); // Close menu on mobile after selection
+                });
+                stepList.appendChild(li);
+            });
+        }
+
+        function toggleMenu() {
+            const stepMenu = document.getElementById('step-menu');
+            menuOpen = !menuOpen;
+            if (menuOpen) {
+                stepMenu.classList.remove('hidden');
+                stepMenu.classList.remove('-translate-x-full');
+            } else {
+                stepMenu.classList.add('-translate-x-full');
+                setTimeout(() => stepMenu.classList.add('hidden'), 300); // Match transition duration
+            }
+        }
+
         function renderStep() {
             const contentDiv = document.getElementById('step-content');
             const navigationDiv = document.getElementById('navigation');
             const downloadBtnContainer = document.getElementById('download-btn-container');
+            const footer = document.getElementById('footer');
 
             if (currentStep === -1) {
                 // Overview page
                 contentDiv.innerHTML = overview.content;
                 navigationDiv.classList.add('hidden');
                 downloadBtnContainer.classList.add('hidden');
+                footer.classList.remove('hidden');
                 document.getElementById('start-btn').addEventListener('click', () => {
                     currentStep = 0;
                     renderStep();
@@ -357,6 +417,7 @@ Congratulations! You’ve completed the data breach response process. Review you
                 contentDiv.innerHTML = selectionPage.content;
                 navigationDiv.classList.add('hidden');
                 downloadBtnContainer.classList.add('hidden');
+                footer.classList.remove('hidden');
                 document.getElementById('org-btn').addEventListener('click', () => {
                     isCharity = false;
                     currentStep = 1;
@@ -378,8 +439,10 @@ Congratulations! You’ve completed the data breach response process. Review you
                     document.getElementById('prev-btn').disabled = currentStep === 1;
                     document.getElementById('next-btn').innerText = stepIndex === activeSteps.length - 1 ? 'Finish' : 'Next';
                     downloadBtnContainer.classList.toggle('hidden', stepIndex !== activeSteps.length - 1);
+                    footer.classList.remove('hidden');
                 }
             }
+            renderStepMenu();
         }
 
         function generatePDF() {
@@ -449,6 +512,8 @@ Congratulations! You’ve completed the data breach response process. Review you
             isCharity = null;
             renderStep();
         });
+
+        document.getElementById('menu-toggle').addEventListener('click', toggleMenu);
 
         // Render the overview page
         renderStep();
